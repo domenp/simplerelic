@@ -29,19 +29,19 @@ reporter.Start()
 
 ## Roadmap
 
-1.The following metrics are to be implemented:
-- number of requests per status code (2xx, 3xx, 4xx, 5xx)
-- percentage of errors per endpoint
-- response time per endpoint
-- overall number of requests
+- The following metrics are (yet) to be implemented:
+    - number of requests per status code (2xx, 3xx, 4xx, 5xx)
+    - percentage of errors per endpoint
+    - response time per endpoint
+    - overall number of requests
 
-2. Making SimpleRelic independent from Gin framework.
+- Making SimpleRelic independent from Gin framework.
 
 Pull requests are welcome :)  
 
 ## Add an user defined metric
 
-User defined metrics need to define AppMetric interface.
+User defined metrics need to implement AppMetric interface.
 
 ```
 type AppMetric interface {
@@ -69,9 +69,9 @@ if err != nil {
 reporter.AddMetrics(NewUserDefinedMetric(simplerelic.DefaultEndpoints))
 ```
 
-Note that in this example we are passing default endpoints to a newly defined metric.
+*Note that in this example we are passing default endpoints to a newly defined metric.
 This is by no means neccessary. The new metric might have nothing to do with
-endpoints or might use different endpoints that the rest of the metrics.
+endpoints or might use different endpoints that the rest of the metrics.*
 
 ## Custom NewRelic plugin
 
