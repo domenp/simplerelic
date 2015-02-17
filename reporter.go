@@ -112,8 +112,8 @@ func (reporter *Reporter) sendMetrics() {
 	// extract all metrics to be sent to NewRelic
 	// from the AppMetric data structure
 	for _, metrics := range reporter.metrics {
-		for k, m := range metrics.ValueMap() {
-			reqData.Components[0].Metrics[k] = m
+		for name, value := range metrics.ValueMap() {
+			reqData.Components[0].Metrics[name] = value
 		}
 		metrics.Clear()
 	}

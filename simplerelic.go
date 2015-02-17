@@ -46,7 +46,7 @@ func Handler() gin.HandlerFunc {
 	}
 }
 
-// InitReporter creates a new reporter and adds standard metrics
+// InitDefaultReporter creates a new reporter and adds standard metrics
 func InitDefaultReporter(appname string, licence string, verbose bool) (*Reporter, error) {
 
 	var err error
@@ -60,11 +60,12 @@ func InitDefaultReporter(appname string, licence string, verbose bool) (*Reporte
 	}
 
 	SimpleReporter.AddMetric(NewReqPerEndpoint(DefaultEndpoints))
+	SimpleReporter.AddMetric(NewPOEPerEndpoint(DefaultEndpoints))
 
 	return SimpleReporter, nil
 }
 
-// AddEndpoint adds an endpoint consisting of name and a matcher function
+// AddDefaultEndpoint adds an endpoint consisting of name and a matcher function
 // associating the given url with the endpoint
 func AddDefaultEndpoint(name string, matcherFunc func(urlPath string) bool) {
 	DefaultEndpoints[name] = matcherFunc
