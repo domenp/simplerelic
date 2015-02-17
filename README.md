@@ -27,6 +27,16 @@ if err != nil {
 reporter.Start()
 ```
 
+The code above does the initialisation part of the reporter. In order to update the http metrics you need to add the simplerelic middleware for Gin framework.
+
+```
+g := gin.New()
+g.Use(
+    ...
+    simplerelic.Handler()
+)
+```
+
 ## Roadmap
 
 - The following metrics are (yet) to be implemented:
