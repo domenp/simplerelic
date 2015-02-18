@@ -11,10 +11,13 @@ import (
 // AppMetric is an interface for metrics reported to NewRelic
 type AppMetric interface {
 
-	// Update the values on every requests (used in gin middleware)
+	// Update all the values that will be reported (or be used in calculation)
+	// Called on every requests (used in gin middleware)
 	Update(c *gin.Context)
 
-	// ValueMap extracts all values to be reported to NewRelic
+	// ValueMap extracts all values from AppMetric data structures
+	// to be reported to NewRelic. A single AppMetric can produce multiple
+	// metrics as perceived by NewRelic.
 	// Note that this function is also responsible for clearing the values
 	// after they have been reported.
 	ValueMap() map[string]float32
@@ -26,7 +29,19 @@ const (
 
 // StandardMetric is a base for metrics dealing with endpoints
 type StandardMetric struct {
-	endpoints map[string]func(urlPath string) bool
+	endpoints  map[string]func(urlPath string) bool
+	reqCount   map[string]int
+	lock       sync.RWMutex
+	namePrefix string
+	metricUnit string
+}
+
+func (m *StandardMetric) initReqCount() {
+	// initialize the metrics
+	for endpoint := range m.endpoints {
+		m.reqCount[endpoint] = 0
+	}
+	m.reqCount[unknownEndpoint] = 0
 }
 
 // endpointFromUrl returns name of the endpoint that matches first
@@ -48,27 +63,21 @@ func (m *StandardMetric) endpointFromURL(urlPath string) string {
 // ReqPerEndpoint holds number of requests per endpoint
 type ReqPerEndpoint struct {
 	*StandardMetric
-	reqCount   map[string]int
-	lock       sync.RWMutex
-	namePrefix string
-	metricUnit string
 }
 
 // NewReqPerEndpoint creates new ReqPerEndpoint metric
 func NewReqPerEndpoint(endpoints map[string]func(urlPath string) bool) *ReqPerEndpoint {
 
 	metric := &ReqPerEndpoint{
-		StandardMetric: &StandardMetric{endpoints: endpoints},
-		reqCount:       make(map[string]int),
-		namePrefix:     "Component/ReqPerEndpoint/",
-		metricUnit:     "[requests]",
+		StandardMetric: &StandardMetric{
+			endpoints:  endpoints,
+			reqCount:   make(map[string]int),
+			namePrefix: "Component/ReqPerEndpoint/",
+			metricUnit: "[requests]",
+		},
 	}
 
-	// initialize the metrics
-	for endpoint := range metric.endpoints {
-		metric.reqCount[endpoint] = 0
-	}
-	metric.reqCount[unknownEndpoint] = 0
+	metric.initReqCount()
 
 	return metric
 }
@@ -103,30 +112,28 @@ func (m *ReqPerEndpoint) ValueMap() map[string]float32 {
 // POEPerEndpoint holds the percentage of error requests per endpoint
 type POEPerEndpoint struct {
 	*StandardMetric
-	reqCount   map[string]int
 	errorCount map[string]int
-	lock       sync.RWMutex
-	namePrefix string
-	metricUnit string
 }
 
 // NewPOEPerEndpoint creates new POEPerEndpoint metric
 func NewPOEPerEndpoint(endpoints map[string]func(urlPath string) bool) *POEPerEndpoint {
 
 	metric := &POEPerEndpoint{
-		StandardMetric: &StandardMetric{endpoints: endpoints},
-		errorCount:     make(map[string]int),
-		reqCount:       make(map[string]int),
-		namePrefix:     "Component/PercentageOfErrorsPerEndpoint/",
-		metricUnit:     "[percent]",
+		StandardMetric: &StandardMetric{
+			endpoints:  endpoints,
+			reqCount:   make(map[string]int),
+			namePrefix: "Component/PercentageOfErrorsPerEndpoint/",
+			metricUnit: "[percent]",
+		},
+		errorCount: make(map[string]int),
 	}
+
 	// initialize the metrics
+	metric.initReqCount()
 	for endpoint := range metric.endpoints {
 		metric.errorCount[endpoint] = 0
-		metric.reqCount[endpoint] = 0
 	}
 	metric.errorCount[unknownEndpoint] = 0
-	metric.reqCount[unknownEndpoint] = 0
 
 	return metric
 }
@@ -168,24 +175,25 @@ func (m *POEPerEndpoint) ValueMap() map[string]float32 {
 // ResponseTimePerEndpoint tracks the response time per endpoint
 type ResponseTimePerEndpoint struct {
 	*StandardMetric
-	reqCount     map[string]int
 	responseTime map[string][]float32
-	lock         sync.RWMutex
-	namePrefix   string
-	metricUnit   string
 }
 
 // NewResponseTimePerEndpoint creates new ResponseTimePerEndpoint metric
 func NewResponseTimePerEndpoint(endpoints map[string]func(urlPath string) bool) *ResponseTimePerEndpoint {
 
 	metric := &ResponseTimePerEndpoint{
-		StandardMetric: &StandardMetric{endpoints: endpoints},
-		reqCount:       make(map[string]int),
-		responseTime:   make(map[string][]float32),
-		namePrefix:     "Component/ResponseTimePerEndpoint/",
-		metricUnit:     "[ms]",
+		StandardMetric: &StandardMetric{
+			endpoints:  endpoints,
+			reqCount:   make(map[string]int),
+			namePrefix: "Component/ResponseTimePerEndpoint/",
+			metricUnit: "[ms]",
+		},
+
+		responseTime: make(map[string][]float32),
 	}
+
 	// initialize the metrics
+	metric.initReqCount()
 	for endpoint := range metric.endpoints {
 		metric.responseTime[endpoint] = make([]float32, 1)
 	}
