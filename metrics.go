@@ -12,10 +12,9 @@ type AppMetric interface {
 	// Update the values on every requests (used in gin middleware)
 	Update(c *gin.Context)
 
-	// Clear the values (after they are reported)
-	Clear()
-
 	// ValueMap extracts all values to be reported to NewRelic
+	// Note that this function is also responsible for clearing the values
+	// after they have been reported.
 	ValueMap() map[string]float32
 }
 
@@ -62,8 +61,12 @@ func NewReqPerEndpoint(endpoints map[string]func(urlPath string) bool) *ReqPerEn
 		namePrefix:     "Component/ReqPerEndpoint/",
 		metricUnit:     "[requests]",
 	}
+
 	// initialize the metrics
-	metric.Clear()
+	for endpoint := range metric.endpoints {
+		metric.reqCount[endpoint] = 0
+	}
+	metric.reqCount[unknownEndpoint] = 0
 
 	return metric
 }
@@ -76,23 +79,17 @@ func (m *ReqPerEndpoint) Update(c *gin.Context) {
 	m.lock.Unlock()
 }
 
-// Clear the metric values
-func (m *ReqPerEndpoint) Clear() {
-	m.lock.Lock()
-	for endpoint := range m.endpoints {
-		m.reqCount[endpoint] = 0
-	}
-	m.reqCount[unknownEndpoint] = 0
-	m.lock.Unlock()
-}
-
 // ValueMap extract all the metrics to be reported
 func (m *ReqPerEndpoint) ValueMap() map[string]float32 {
+
 	metrics := make(map[string]float32)
+	m.lock.Lock()
 	for endpoint, value := range m.reqCount {
 		metricName := m.namePrefix + endpoint + m.metricUnit
 		metrics[metricName] = float32(value)
+		m.reqCount[endpoint] = 0
 	}
+	m.lock.Unlock()
 
 	return metrics
 }
@@ -122,7 +119,12 @@ func NewPOEPerEndpoint(endpoints map[string]func(urlPath string) bool) *POEPerEn
 		metricUnit:     "[percent]",
 	}
 	// initialize the metrics
-	metric.Clear()
+	for endpoint := range metric.endpoints {
+		metric.errorCount[endpoint] = 0
+		metric.reqCount[endpoint] = 0
+	}
+	metric.errorCount[unknownEndpoint] = 0
+	metric.reqCount[unknownEndpoint] = 0
 
 	return metric
 }
@@ -138,27 +140,21 @@ func (m *POEPerEndpoint) Update(c *gin.Context) {
 	m.lock.Unlock()
 }
 
-// Clear the metric values
-func (m *POEPerEndpoint) Clear() {
-	m.lock.Lock()
-	for endpoint := range m.endpoints {
-		m.errorCount[endpoint] = 0
-		m.reqCount[endpoint] = 0
-	}
-	m.errorCount[unknownEndpoint] = 0
-	m.reqCount[unknownEndpoint] = 0
-	m.lock.Unlock()
-}
-
 // ValueMap extract all the metrics to be reported
 func (m *POEPerEndpoint) ValueMap() map[string]float32 {
+
 	metrics := make(map[string]float32)
-	for endpoint := range m.endpoints {
+
+	m.lock.Lock()
+	for endpoint := range m.errorCount {
 		metricName := m.namePrefix + endpoint + m.metricUnit
 		if overallReq := float32(m.reqCount[endpoint]); overallReq > 0.0 {
 			metrics[metricName] = float32(m.errorCount[endpoint]) / overallReq
 		}
+		m.errorCount[endpoint] = 0
+		m.reqCount[endpoint] = 0
 	}
+	m.lock.Unlock()
 
 	return metrics
 }

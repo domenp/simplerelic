@@ -129,7 +129,6 @@ func (reporter *Reporter) sendMetrics() {
 		for name, value := range metrics.ValueMap() {
 			reqData.Components[0].Metrics[name] = value
 		}
-		metrics.Clear()
 	}
 
 	json, err := json.Marshal(reqData)
