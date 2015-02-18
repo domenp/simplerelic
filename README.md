@@ -7,8 +7,11 @@ metrics, but should be easy to add user defined ones.
 Apart from Gin framework the library does not have any external dependencies.
 
 Default metrics:
-- number of requests per endpoint
-- percentage of errors per endpoint
+- [x] number of requests per endpoint
+- [x] percentage of errors per endpoint
+- [ ] number of requests per status code (2xx, 3xx, 4xx, 5xx)
+- [ ] response time per endpoint
+- [ ] overall number of requests
 
 ## Basic usage
 
@@ -40,18 +43,6 @@ g.Use(
     simplerelic.Handler()
 )
 ```
-
-## Roadmap
-
-- The following metrics are (yet) to be implemented:
-    - number of requests per status code (2xx, 3xx, 4xx, 5xx)
-    - percentage of errors per endpoint
-    - response time per endpoint
-    - overall number of requests
-
-- Making SimpleRelic independent from Gin framework.
-
-Pull requests are welcome :)  
 
 ## Add an user defined metric
 
