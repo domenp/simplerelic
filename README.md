@@ -1,7 +1,7 @@
 # SimpleRelic
 
 SimpleRelic is a Go reporting library sending http metrics to NewRelic. In this (early)
-stage it's tightly integrated with Gin framework. There are currently only two defined
+stage it's tightly integrated with Gin framework. There are currently three defined
 metrics, but should be easy to add user defined ones.
 
 Apart from Gin framework the library does not have any external dependencies.
@@ -9,8 +9,8 @@ Apart from Gin framework the library does not have any external dependencies.
 Default metrics:
 - [x] number of requests per endpoint
 - [x] percentage of errors per endpoint
+- [x] response time per endpoint
 - [ ] number of requests per status code (2xx, 3xx, 4xx, 5xx)
-- [ ] response time per endpoint
 - [ ] overall number of requests
 
 ## Basic usage
@@ -51,14 +51,13 @@ User defined metrics need to implement AppMetric interface.
 ```
 type AppMetric interface {
 
-    // Update the values on every requests (used in gin middleware)
-    Update(c *gin.Context)
+	// Update the values on every requests (used in gin middleware)
+	Update(c *gin.Context)
 
-    // Clear the values (after they are reported)
-    Clear()
-
-    // ValueMap extracts all values to be reported to NewRelic
-    ValueMap() map[string]float32
+	// ValueMap extracts all values to be reported to NewRelic
+	// Note that this function is also responsible for clearing the values
+	// after they have been reported.
+	ValueMap() map[string]float32
 }
 ```
 
