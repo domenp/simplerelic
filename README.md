@@ -2,7 +2,7 @@
 
 SimpleRelic is a Go reporting library sending http metrics to NewRelic. In this (early)
 stage it's tightly integrated with Gin framework. There are currently only two defined
-metric (requests per endpoint), but should be easy to add user defined ones.
+metrics, but should be easy to add user defined ones.
 
 Apart from Gin framework the library does not have any external dependencies.
 
