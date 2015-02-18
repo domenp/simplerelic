@@ -7,11 +7,9 @@ metrics, but should be easy to add user defined ones.
 Apart from Gin framework the library does not have any external dependencies.
 
 Default metrics:
-- [x] number of requests per endpoint
-- [x] percentage of errors per endpoint
-- [x] response time per endpoint
-- [ ] number of requests per status code (2xx, 3xx, 4xx, 5xx)
-- [ ] overall number of requests
+- number of requests per endpoint
+- percentage of 4xx and 5xx errors per endpoint
+- response time per endpoint
 
 ## Basic usage
 
