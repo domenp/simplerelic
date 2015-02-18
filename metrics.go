@@ -131,7 +131,9 @@ func NewPOEPerEndpoint(endpoints map[string]func(urlPath string) bool) *POEPerEn
 func (m *POEPerEndpoint) Update(c *gin.Context) {
 	endpointName := m.endpointFromURL(c.Request.URL.Path)
 	m.lock.Lock()
-	m.errorCount[endpointName]++
+	if c.Writer.Status() >= 400 {
+		m.errorCount[endpointName]++
+	}
 	m.reqCount[endpointName]++
 	m.lock.Unlock()
 }
