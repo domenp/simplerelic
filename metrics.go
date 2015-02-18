@@ -207,6 +207,7 @@ func (m *ResponseTimePerEndpoint) Update(c *gin.Context) {
 
 	endpointName := m.endpointFromURL(c.Request.URL.Path)
 	m.lock.Lock()
+	m.reqCount[endpointName]++
 	m.responseTime[endpointName] = append(m.responseTime[endpointName], elaspsedTimeInMs)
 	m.lock.Unlock()
 }
