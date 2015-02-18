@@ -7,10 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const (
-	defaultGuid = "com.github.domenp.SimpleRelic"
-)
-
 var (
 	// SimpleReporter reports metrics to NewRelic
 	SimpleReporter *Reporter
@@ -24,7 +20,6 @@ var (
 
 func init() {
 	DefaultEndpoints = make(map[string]func(urlPath string) bool)
-	Guid = defaultGuid
 }
 
 func onReqStartHandler(c *gin.Context) {

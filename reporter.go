@@ -12,8 +12,22 @@ import (
 )
 
 const (
+	// url of the NewRelic plugin API
 	newrelicURL = "https://platform-api.newrelic.com/platform/v1/metrics"
+
+	// default GUID that associate the metrics with a NewRelic plugin
+	defaultGuid = "com.github.domenp.SimpleRelic"
+
+	// how often we send the metrics to NewRelic
+	reportingFreq = time.Duration(60) * time.Second
+
+	// for debugging purposes sending metrics can be disabled
+	sendMetrics = true
 )
+
+func init() {
+	Guid = defaultGuid
+}
 
 // Reporter keeps track of the app metrics and sends them to NewRelic
 type Reporter struct {
@@ -84,7 +98,7 @@ func (reporter *Reporter) Start() {
 		}
 	}()
 
-	ticker := time.NewTicker(time.Second * 60)
+	ticker := time.NewTicker(reportingFreq)
 	quit := make(chan struct{})
 	go func() {
 		for {
@@ -128,7 +142,9 @@ func (reporter *Reporter) sendMetrics() {
 		fmt.Println(string(json))
 	}
 
-	reporter.doRequest(json)
+	if sendMetrics {
+		reporter.doRequest(json)
+	}
 }
 
 func (reporter *Reporter) prepareReqData() *newRelicData {
