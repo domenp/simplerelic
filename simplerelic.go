@@ -56,6 +56,7 @@ func InitDefaultReporter(appname string, licence string, verbose bool) (*Reporte
 
 	SimpleReporter.AddMetric(NewReqPerEndpoint(DefaultEndpoints))
 	SimpleReporter.AddMetric(NewPOEPerEndpoint(DefaultEndpoints))
+	SimpleReporter.AddMetric(NewResponseTimePerEndpoint(DefaultEndpoints))
 
 	return SimpleReporter, nil
 }

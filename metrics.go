@@ -1,7 +1,9 @@
 package simplerelic
 
 import (
+	"fmt"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -153,6 +155,82 @@ func (m *POEPerEndpoint) ValueMap() map[string]float32 {
 		}
 		m.errorCount[endpoint] = 0
 		m.reqCount[endpoint] = 0
+	}
+	m.lock.Unlock()
+
+	return metrics
+}
+
+/**************************************************
+* Response time per endpoint
+**************************************************/
+
+// ResponseTimePerEndpoint tracks the response time per endpoint
+type ResponseTimePerEndpoint struct {
+	*StandardMetric
+	reqCount     map[string]int
+	responseTime map[string][]float32
+	lock         sync.RWMutex
+	namePrefix   string
+	metricUnit   string
+}
+
+// NewResponseTimePerEndpoint creates new ResponseTimePerEndpoint metric
+func NewResponseTimePerEndpoint(endpoints map[string]func(urlPath string) bool) *ResponseTimePerEndpoint {
+
+	metric := &ResponseTimePerEndpoint{
+		StandardMetric: &StandardMetric{endpoints: endpoints},
+		reqCount:       make(map[string]int),
+		responseTime:   make(map[string][]float32),
+		namePrefix:     "Component/ResponseTimePerEndpoint/",
+		metricUnit:     "[ms]",
+	}
+	// initialize the metrics
+	for endpoint := range metric.endpoints {
+		metric.responseTime[endpoint] = make([]float32, 1)
+	}
+	metric.responseTime[unknownEndpoint] = make([]float32, 1)
+
+	return metric
+}
+
+// Update the metric values
+func (m *ResponseTimePerEndpoint) Update(c *gin.Context) {
+
+	startTime, err := c.Get("reqStartTime")
+	if err != nil {
+		fmt.Errorf("reqStart time should be time.Time")
+		return
+	}
+
+	elaspsedTimeInMs := float32(time.Since(startTime.(time.Time))) / float32(time.Millisecond)
+
+	endpointName := m.endpointFromURL(c.Request.URL.Path)
+	m.lock.Lock()
+	m.responseTime[endpointName] = append(m.responseTime[endpointName], elaspsedTimeInMs)
+	m.lock.Unlock()
+}
+
+// ValueMap extract all the metrics to be reported
+func (m *ResponseTimePerEndpoint) ValueMap() map[string]float32 {
+
+	metrics := make(map[string]float32)
+
+	m.lock.Lock()
+	for endpoint, values := range m.responseTime {
+		metricName := m.namePrefix + endpoint + m.metricUnit
+		var sum float32
+		for _, value := range values {
+			sum += value
+		}
+
+		metrics[metricName] = 0.
+		if allReq := float32(m.reqCount[endpoint]); allReq > 0 {
+			metrics[metricName] = float32(sum) / allReq
+		}
+
+		m.reqCount[endpoint] = 0
+		m.responseTime[endpoint] = make([]float32, 1)
 	}
 	m.lock.Unlock()
 
