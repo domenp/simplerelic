@@ -49,10 +49,13 @@ User defined metrics need to implement AppMetric interface.
 ```
 type AppMetric interface {
 
-	// Update the values on every requests (used in gin middleware)
+	// Update all the values that will be reported (or be used in calculation)
+	// Called on every requests (used in gin middleware)
 	Update(c *gin.Context)
 
-	// ValueMap extracts all values to be reported to NewRelic
+	// ValueMap extracts all values from AppMetric data structures
+	// to be reported to NewRelic. A single AppMetric can produce multiple
+	// metrics as perceived by NewRelic.
 	// Note that this function is also responsible for clearing the values
 	// after they have been reported.
 	ValueMap() map[string]float32
