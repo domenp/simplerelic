@@ -246,7 +246,9 @@ func (m *ResponseTimePerEndpoint) ValueMap() map[string]float32 {
 	metrics := make(map[string]float32)
 
 	m.lock.Lock()
+
 	var allEPResponseTime float32
+	var allEPReq int
 	for endpoint, values := range m.responseTime {
 		metricName := m.namePrefix + endpoint + m.metricUnit
 		var sum float32
@@ -259,12 +261,18 @@ func (m *ResponseTimePerEndpoint) ValueMap() map[string]float32 {
 			metrics[metricName] = float32(sum) / allReq
 		}
 
-		allEPResponseTime += metrics[metricName]
+		allEPResponseTime += sum
+		allEPReq += m.reqCount[endpoint]
 
 		m.reqCount[endpoint] = 0
 		m.responseTime[endpoint] = make([]float32, 1)
 	}
-	metrics[m.allEPNamePrefix+m.metricUnit] = allEPResponseTime / float32(len(m.reqCount))
+
+	metrics[m.allEPNamePrefix+m.metricUnit] = 0.
+	if allEPReq > 0 {
+		metrics[m.allEPNamePrefix+m.metricUnit] = allEPResponseTime / float32(allEPReq)
+	}
+
 	m.lock.Unlock()
 
 	return metrics

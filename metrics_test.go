@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	endpointName = "log"
+	endpointName  = "log"
+	componentName = "Component/ResponseTimePerEndpoint/"
 )
 
 func TestResponseTimeValueMap(t *testing.T) {
@@ -37,11 +38,37 @@ func TestResponseTimeValueMap(t *testing.T) {
 
 	r.ServeHTTP(recorder, req)
 
-	for name, value := range m.ValueMap() {
+	values := m.ValueMap()
+	if len(values) != 3 {
+		t.Errorf("error: not enough metrics received")
+	}
+
+	if _, ok := values[componentName+endpointName+"[ms]"]; !ok {
+		t.Errorf("error: other endpoint not found")
+	}
+
+	if _, ok := values["Component/ResponseTime/overall[ms]"]; !ok {
+		t.Errorf("error: overall metric not found")
+	}
+
+	// check the response time calculation
+	for name, value := range values {
 		if strings.HasSuffix(name, endpointName+"[ms]") {
 			if value != 0.15 {
-				t.Errorf("error: expected %f, got %f", 0.2, value)
+				t.Errorf("error: expected %f, got %f", 0.15, value)
 			}
+		}
+		if strings.HasSuffix(name, "overall[ms]") {
+			if value != 0.15 {
+				t.Errorf("error: expected %f, got %f", 0.15, value)
+			}
+		}
+	}
+
+	// check if the metrics are cleared
+	for _, value := range m.ValueMap() {
+		if value != 0. {
+			t.Errorf("error: expected %f, got %f", 0., value)
 		}
 	}
 }
