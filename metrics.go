@@ -29,11 +29,12 @@ const (
 
 // StandardMetric is a base for metrics dealing with endpoints
 type StandardMetric struct {
-	endpoints  map[string]func(urlPath string) bool
-	reqCount   map[string]int
-	lock       sync.RWMutex
-	namePrefix string
-	metricUnit string
+	endpoints       map[string]func(urlPath string) bool
+	reqCount        map[string]int
+	lock            sync.RWMutex
+	namePrefix      string
+	allEPNamePrefix string
+	metricUnit      string
 }
 
 func (m *StandardMetric) initReqCount() {
@@ -70,10 +71,11 @@ func NewReqPerEndpoint(endpoints map[string]func(urlPath string) bool) *ReqPerEn
 
 	metric := &ReqPerEndpoint{
 		StandardMetric: &StandardMetric{
-			endpoints:  endpoints,
-			reqCount:   make(map[string]int),
-			namePrefix: "Component/ReqPerEndpoint/",
-			metricUnit: "[requests]",
+			endpoints:       endpoints,
+			reqCount:        make(map[string]int),
+			namePrefix:      "Component/ReqPerEndpoint/",
+			allEPNamePrefix: "Component/Req/overall",
+			metricUnit:      "[requests]",
 		},
 	}
 
@@ -95,35 +97,39 @@ func (m *ReqPerEndpoint) ValueMap() map[string]float32 {
 
 	metrics := make(map[string]float32)
 	m.lock.Lock()
+	var allEPReq int
 	for endpoint, value := range m.reqCount {
 		metricName := m.namePrefix + endpoint + m.metricUnit
 		metrics[metricName] = float32(value)
+		allEPReq += value
 		m.reqCount[endpoint] = 0
 	}
+	metrics[m.allEPNamePrefix+m.metricUnit] = float32(allEPReq)
 	m.lock.Unlock()
 
 	return metrics
 }
 
 /**************************************************
-* Percentage of errors per endpoint
+* Error rate per endpoint
 **************************************************/
 
-// POEPerEndpoint holds the percentage of error requests per endpoint
-type POEPerEndpoint struct {
+// ErrorRatePerEndpoint holds the percentage of error requests per endpoint
+type ErrorRatePerEndpoint struct {
 	*StandardMetric
 	errorCount map[string]int
 }
 
-// NewPOEPerEndpoint creates new POEPerEndpoint metric
-func NewPOEPerEndpoint(endpoints map[string]func(urlPath string) bool) *POEPerEndpoint {
+// NewErrorRatePerEndpoint creates new POEPerEndpoint metric
+func NewErrorRatePerEndpoint(endpoints map[string]func(urlPath string) bool) *ErrorRatePerEndpoint {
 
-	metric := &POEPerEndpoint{
+	metric := &ErrorRatePerEndpoint{
 		StandardMetric: &StandardMetric{
-			endpoints:  endpoints,
-			reqCount:   make(map[string]int),
-			namePrefix: "Component/PercentageOfErrorsPerEndpoint/",
-			metricUnit: "[percent]",
+			endpoints:       endpoints,
+			reqCount:        make(map[string]int),
+			namePrefix:      "Component/ErrorRatePerEndpoint/",
+			allEPNamePrefix: "Component/ErrorRate/overall",
+			metricUnit:      "[percent]",
 		},
 		errorCount: make(map[string]int),
 	}
@@ -139,7 +145,7 @@ func NewPOEPerEndpoint(endpoints map[string]func(urlPath string) bool) *POEPerEn
 }
 
 // Update the metric values
-func (m *POEPerEndpoint) Update(c *gin.Context) {
+func (m *ErrorRatePerEndpoint) Update(c *gin.Context) {
 	endpointName := m.endpointFromURL(c.Request.URL.Path)
 	m.lock.Lock()
 	if c.Writer.Status() >= 400 {
@@ -150,19 +156,32 @@ func (m *POEPerEndpoint) Update(c *gin.Context) {
 }
 
 // ValueMap extract all the metrics to be reported
-func (m *POEPerEndpoint) ValueMap() map[string]float32 {
+func (m *ErrorRatePerEndpoint) ValueMap() map[string]float32 {
 
 	metrics := make(map[string]float32)
 
 	m.lock.Lock()
+	var allEPErrors int
+	var allEPReq int
 	for endpoint := range m.errorCount {
 		metricName := m.namePrefix + endpoint + m.metricUnit
+
 		if overallReq := float32(m.reqCount[endpoint]); overallReq > 0.0 {
 			metrics[metricName] = float32(m.errorCount[endpoint]) / overallReq
 		}
+
+		allEPErrors += m.errorCount[endpoint]
+		allEPReq += m.reqCount[endpoint]
+
 		m.errorCount[endpoint] = 0
 		m.reqCount[endpoint] = 0
 	}
+
+	metrics[m.allEPNamePrefix+m.metricUnit] = 0.
+	if allEPReq > 0 {
+		metrics[m.allEPNamePrefix+m.metricUnit] = float32(allEPErrors) / float32(allEPReq)
+	}
+
 	m.lock.Unlock()
 
 	return metrics
@@ -183,10 +202,11 @@ func NewResponseTimePerEndpoint(endpoints map[string]func(urlPath string) bool) 
 
 	metric := &ResponseTimePerEndpoint{
 		StandardMetric: &StandardMetric{
-			endpoints:  endpoints,
-			reqCount:   make(map[string]int),
-			namePrefix: "Component/ResponseTimePerEndpoint/",
-			metricUnit: "[ms]",
+			endpoints:       endpoints,
+			reqCount:        make(map[string]int),
+			namePrefix:      "Component/ResponseTimePerEndpoint/",
+			allEPNamePrefix: "Component/ResponseTime/overall",
+			metricUnit:      "[ms]",
 		},
 
 		responseTime: make(map[string][]float32),
@@ -226,6 +246,7 @@ func (m *ResponseTimePerEndpoint) ValueMap() map[string]float32 {
 	metrics := make(map[string]float32)
 
 	m.lock.Lock()
+	var allEPResponseTime float32
 	for endpoint, values := range m.responseTime {
 		metricName := m.namePrefix + endpoint + m.metricUnit
 		var sum float32
@@ -238,9 +259,12 @@ func (m *ResponseTimePerEndpoint) ValueMap() map[string]float32 {
 			metrics[metricName] = float32(sum) / allReq
 		}
 
+		allEPResponseTime += metrics[metricName]
+
 		m.reqCount[endpoint] = 0
 		m.responseTime[endpoint] = make([]float32, 1)
 	}
+	metrics[m.allEPNamePrefix+m.metricUnit] = allEPResponseTime / float32(len(m.reqCount))
 	m.lock.Unlock()
 
 	return metrics
