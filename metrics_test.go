@@ -28,19 +28,20 @@ func TestResponseTimeValueMap(t *testing.T) {
 
 	r.GET("/log", func(c *gin.Context) {
 
-		m.reqCount[endpointName]++
-		for i := 0; i < 4; i++ {
-			m.responseTime[endpointName] = append(m.responseTime[endpointName], 0.2)
+		ts := []float32{0.1, 0.2, 0.1, 0.2}
+		for _, t := range ts {
+			m.responseTime[endpointName] = append(m.responseTime[endpointName], t)
+			m.reqCount[endpointName]++
 		}
 	})
 
+	r.ServeHTTP(recorder, req)
+
 	for name, value := range m.ValueMap() {
 		if strings.HasSuffix(name, endpointName+"[ms]") {
-			if value != 0.2 {
+			if value != 0.15 {
 				t.Errorf("error: expected %f, got %f", 0.2, value)
 			}
 		}
 	}
-
-	r.ServeHTTP(recorder, req)
 }
