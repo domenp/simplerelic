@@ -166,6 +166,7 @@ func (m *ErrorRatePerEndpoint) ValueMap() map[string]float32 {
 	for endpoint := range m.errorCount {
 		metricName := m.namePrefix + endpoint + m.metricUnit
 
+		metrics[metricName] = 0.
 		if overallReq := float32(m.reqCount[endpoint]); overallReq > 0.0 {
 			metrics[metricName] = float32(m.errorCount[endpoint]) / overallReq
 		}
