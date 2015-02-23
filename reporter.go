@@ -92,15 +92,16 @@ func NewReporter(appName string, licence string, verbose bool) (*Reporter, error
 // Start sending metrics to NewRelic
 func (reporter *Reporter) Start() {
 
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Errorf("SimpleRelic reporter crashed")
-		}
-	}()
-
 	ticker := time.NewTicker(reportingFreq)
 	quit := make(chan struct{})
 	go func() {
+
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("SimpleRelic reporter crashed")
+			}
+		}()
+
 		for {
 			select {
 			case <-ticker.C:
