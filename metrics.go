@@ -1,7 +1,6 @@
 package simplerelic
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -228,7 +227,7 @@ func (m *ResponseTimePerEndpoint) Update(c *gin.Context) {
 
 	startTime, err := c.Get("reqStartTime")
 	if err != nil {
-		fmt.Errorf("reqStart time should be time.Time")
+		Log.Printf("reqStart time should be time.Time")
 		return
 	}
 

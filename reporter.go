@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -16,7 +17,7 @@ const (
 	newrelicURL = "https://platform-api.newrelic.com/platform/v1/metrics"
 
 	// default GUID that associate the metrics with a NewRelic plugin
-	defaultGuid = "com.github.domenp.SimpleRelic"
+	defaultGUID = "com.github.domenp.SimpleRelic"
 
 	// how often we send the metrics to NewRelic
 	reportingFreq = time.Duration(60) * time.Second
@@ -25,8 +26,14 @@ const (
 	sendMetrics = true
 )
 
+var (
+	// Log is a logger used in the package
+	Log *log.Logger
+)
+
 func init() {
-	Guid = defaultGuid
+	Guid = defaultGUID
+	Log = log.New(os.Stderr, "simplerelic:", log.Lshortfile)
 }
 
 // Reporter keeps track of the app metrics and sends them to NewRelic
@@ -98,7 +105,7 @@ func (reporter *Reporter) Start() {
 
 		defer func() {
 			if r := recover(); r != nil {
-				fmt.Println("SimpleRelic reporter crashed")
+				Log.Println("SimpleRelic reporter crashed")
 			}
 		}()
 
@@ -138,8 +145,8 @@ func (reporter *Reporter) sendMetrics() {
 	}
 
 	if reporter.verbose {
-		fmt.Println("sending metrics to NewRelic")
-		fmt.Println(string(json))
+		Log.Println("sending metrics to NewRelic")
+		Log.Println(string(json))
 	}
 
 	if sendMetrics {
@@ -192,15 +199,15 @@ func (reporter *Reporter) doRequest(json []byte) {
 	defer resp.Body.Close()
 
 	if reporter.verbose {
-		responseJson, err := ioutil.ReadAll(resp.Body)
+		responseJSON, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Errorf("reading of NewRelic response failed")
+			Log.Println("reading of NewRelic response failed")
 		}
-		fmt.Println("response from NewRelic")
-		fmt.Println(string(responseJson))
+		Log.Println("response from NewRelic")
+		Log.Println(string(responseJSON))
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Errorf("Error in request to NewRelic, status code %d", resp.StatusCode)
+		Log.Printf("Error in request to NewRelic, status code %d", resp.StatusCode)
 	}
 }
