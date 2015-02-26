@@ -33,7 +33,7 @@ var (
 
 func init() {
 	Guid = defaultGUID
-	Log = log.New(os.Stderr, "simplerelic:", log.Lshortfile)
+	Log = log.New(os.Stderr, "[simplerelic]", log.Ldate|log.Lshortfile)
 }
 
 // Reporter keeps track of the app metrics and sends them to NewRelic
@@ -139,18 +139,20 @@ func (reporter *Reporter) sendMetrics() {
 		}
 	}
 
-	json, err := json.Marshal(reqData)
+	b, err := json.Marshal(reqData)
 	if err != nil {
 		fmt.Errorf("error marshaling json")
 	}
 
 	if reporter.verbose {
+		var out bytes.Buffer
+		json.Indent(&out, b, "", "\t")
 		Log.Println("sending metrics to NewRelic")
-		Log.Println(string(json))
+		Log.Println(out.String())
 	}
 
 	if sendMetrics {
-		reporter.doRequest(json)
+		reporter.doRequest(b)
 	}
 }
 
