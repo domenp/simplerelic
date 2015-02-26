@@ -184,16 +184,17 @@ func (reporter *Reporter) prepareReqData() *newRelicData {
 func (reporter *Reporter) doRequest(json []byte) {
 	req, err := http.NewRequest("POST", newrelicURL, bytes.NewReader(json))
 	if err != nil {
-		fmt.Errorf("error setting up newrelic request")
+		Log.Println("error setting up newrelic request")
 	}
 	req.Header.Set("X-License-Key", reporter.licence)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Errorf("Post request to NewRelic failed")
+		Log.Println("Post request to NewRelic failed")
+		Log.Println(err)
 		return
 	}
 	defer resp.Body.Close()
