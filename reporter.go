@@ -29,11 +29,13 @@ const (
 var (
 	// Log is a logger used in the package
 	Log *log.Logger
+
+	httpClient = &http.Client{Timeout: 10 * time.Second}
 )
 
 func init() {
 	Guid = defaultGUID
-	Log = log.New(os.Stderr, "[simplerelic]", log.Ldate|log.Lshortfile)
+	Log = log.New(os.Stderr, "[simplerelic] ", log.Ldate|log.Ltime|log.Lshortfile)
 }
 
 // Reporter keeps track of the app metrics and sends them to NewRelic
@@ -192,8 +194,7 @@ func (reporter *Reporter) doRequest(json []byte) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		Log.Println("Post request to NewRelic failed")
 		Log.Println(err)
