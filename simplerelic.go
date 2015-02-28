@@ -34,6 +34,14 @@ func onReqEndHandler(c *gin.Context) {
 
 // Handler is a gin middleware that updates metrics
 func Handler() gin.HandlerFunc {
+
+	// protection against uninitialized reporter
+	if SimpleReporter == nil {
+		return func(c *gin.Context) {
+			c.Next()
+		}
+	}
+
 	return func(c *gin.Context) {
 		onReqStartHandler(c)
 		c.Next()
