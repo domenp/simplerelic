@@ -30,6 +30,9 @@ var (
 	// Log is a logger used in the package
 	Log *log.Logger
 
+	// NewRelic GUID for creating the NewRelic plugin
+	Guid string
+
 	httpClient = &http.Client{Timeout: 10 * time.Second}
 )
 
@@ -40,7 +43,7 @@ func init() {
 
 // Reporter keeps track of the app metrics and sends them to NewRelic
 type Reporter struct {
-	metrics  []AppMetric
+	Metrics  []AppMetric
 	host     string
 	pid      int
 	guid     string
@@ -92,7 +95,7 @@ func NewReporter(appName string, licence string, verbose bool) (*Reporter, error
 		licence:  licence,
 		version:  "1.0.0",
 		verbose:  verbose,
-		metrics:  make([]AppMetric, 0, 5),
+		Metrics:  make([]AppMetric, 0, 5),
 	}
 
 	return reporter, nil
@@ -125,7 +128,7 @@ func (reporter *Reporter) Start() {
 
 // AddMetric adds a new metric to be reported
 func (reporter *Reporter) AddMetric(metric AppMetric) {
-	reporter.metrics = append(reporter.metrics, metric)
+	reporter.Metrics = append(reporter.Metrics, metric)
 }
 
 // extract and send metrics to NewRelic
@@ -135,7 +138,7 @@ func (reporter *Reporter) sendMetrics() {
 
 	// extract all metrics to be sent to NewRelic
 	// from the AppMetric data structure
-	for _, metrics := range reporter.metrics {
+	for _, metrics := range reporter.Metrics {
 		for name, value := range metrics.ValueMap() {
 			reqData.Components[0].Metrics[name] = value
 		}
