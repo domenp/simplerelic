@@ -37,6 +37,14 @@ func DefaultReqParams(endpointName string) map[string]interface{} {
 	return params
 }
 
+// CollectParamsOnReqEnd populates params map with additional data available when the request
+// processing is already done e.g. http response status code
+func CollectParamsOnReqEnd(params map[string]interface{}, statusCode int) map[string]interface{} {
+	// required by error rate metric
+	params["statusCode"] = statusCode
+	return params
+}
+
 // UpdateMetricsOnReqEnd updates all defined metrics in the end of each request
 func UpdateMetricsOnReqEnd(params map[string]interface{}) {
 	for _, v := range Engine.Metrics {
