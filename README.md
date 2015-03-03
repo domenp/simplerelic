@@ -1,5 +1,7 @@
 # SimpleRelic
 
+MOVED TO https://github.com/datajet-io/simplerelic
+
 SimpleRelic is a Go reporting library sending http metrics to NewRelic. It is designed with simplicity in mind i.e. to add a new metric you only have to implement a struct with two functions. There are currently three default
 metrics.
 
